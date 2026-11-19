@@ -24,6 +24,19 @@
     } else shown.forEach(function (el) { el.classList.add('in'); });
   } catch (err) { root.classList.remove('ready'); }
 
+  /* иллюстрации первого экрана (страницы услуг): проигрываем один раз сразу после загрузки */
+  var plays = $$('[data-play]');
+  if (plays.length) requestAnimationFrame(function () { requestAnimationFrame(function () { plays.forEach(function (el) { el.classList.add('in'); }); }); });
+
+  /* всё живое (бегущая строка, блики, парящие карточки) работает только на экране:
+     секция ушла из вида — её анимации на паузе (класс .off), телефон не тратит силы */
+  if (IO && !qa) {
+    var live = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { e.target.classList.toggle('off', !e.isIntersecting); });
+    }, { rootMargin: '120px 0px 120px 0px' });
+    $$('main > section, .ticker').forEach(function (el) { live.observe(el); });
+  }
+
   /* шапка: тень после начала прокрутки — по «датчику» вверху страницы, без события scroll */
   var nav = $('.nav'), sensor = $('#top-sensor');
   if (nav && sensor && IO) new IntersectionObserver(function (e) { nav.classList.toggle('scrolled', !e[0].isIntersecting); }).observe(sensor);
