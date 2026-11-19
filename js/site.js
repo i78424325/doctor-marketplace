@@ -9,18 +9,35 @@
   var $$ = function (s, c) { return Array.prototype.slice.call((c || d).querySelectorAll(s)); };
   var IO = 'IntersectionObserver' in window;
 
+  /* появление блоков при прокрутке — один раз. Идёт первым: то, что уже на экране, сразу видно,
+     а прятать остальное (класс .ready) начинаем только когда скрипт точно запустился */
+  try {
+    var shown = $$('[data-reveal], .tagline, .steps');
+    if (IO && !qa) {
+      var vh = window.innerHeight || 800;
+      shown.forEach(function (el) { if (el.getBoundingClientRect().top < vh) el.classList.add('in'); });
+      root.classList.add('ready');
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { rootMargin: '0px 0px -10% 0px' });
+      shown.forEach(function (el) { if (!el.classList.contains('in')) io.observe(el); });
+    } else shown.forEach(function (el) { el.classList.add('in'); });
+  } catch (err) { root.classList.remove('ready'); }
+
   /* шапка: тень после начала прокрутки — по «датчику» вверху страницы, без события scroll */
   var nav = $('.nav'), sensor = $('#top-sensor');
   if (nav && sensor && IO) new IntersectionObserver(function (e) { nav.classList.toggle('scrolled', !e[0].isIntersecting); }).observe(sensor);
 
   /* мобильное меню */
-  var menuBtn = $('.menu-btn'), mmenu = $('#mmenu');
+  var menuBtn = $('.menu-btn'), mmenu = $('#mmenu'), behind = [$('#main'), $('.footer')].filter(Boolean);
   function setMenu(open) {
     root.classList.toggle('menu-open', open);
     menuBtn.setAttribute('aria-expanded', String(open));
     menuBtn.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
     d.body.style.overflow = open ? 'hidden' : '';
     if (mmenu) mmenu.inert = !open;
+    behind.forEach(function (el) { el.inert = open; }); // страница за меню недоступна с клавиатуры
+    if (open && mmenu) { var first = $('a', mmenu); if (first) setTimeout(function () { first.focus({ preventScroll: true }); }, 60); }
   }
   if (menuBtn) {
     if (mmenu) mmenu.inert = true;
@@ -30,15 +47,6 @@
     var wide = window.matchMedia('(min-width:1024px)'), onWide = function (e) { if (e.matches) setMenu(false); };
     if (wide.addEventListener) wide.addEventListener('change', onWide); else if (wide.addListener) wide.addListener(onWide);
   }
-
-  /* появление блоков при прокрутке — один раз */
-  var shown = $$('[data-reveal], .tagline, .steps');
-  if (IO && !qa) {
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-    }, { rootMargin: '0px 0px -10% 0px' });
-    shown.forEach(function (el) { io.observe(el); });
-  } else shown.forEach(function (el) { el.classList.add('in'); });
 
   /* липкая кнопка на телефоне: появляется, когда первый экран ушёл вверх */
   var sticky = $('.sticky-cta'), heroEl = $('.hero, .phero');
@@ -75,10 +83,10 @@
     var validate = function (i) {
       var v = i.value.trim();
       if (i === nameI) { setErr(i, v.length < 2 ? 'Напишите, как к вам обращаться.' : ''); return v.length >= 2; }
-      // телефон (10–15 цифр), ник Телеграма (с буквы, 5–32 символа), ссылка t.me или почта
+      // телефон (10–15 цифр, любые разделители, без букв), ник Телеграма (с буквы, 5–32 символа), ссылка t.me или почта
       var digits = v.replace(/\D/g, '').length;
       var ok = /^@?[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(v) || /t\.me\/[a-zA-Z][a-zA-Z0-9_]{4,}/.test(v) ||
-        /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || (/^[\d\s()+\-]+$/.test(v) && digits >= 10 && digits <= 15);
+        /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || (!/[a-zа-яё@]/i.test(v) && digits >= 10 && digits <= 15);
       setErr(i, ok ? '' : 'Укажите телефон, ник в Телеграме (например, @username) или почту.');
       return ok;
     };
