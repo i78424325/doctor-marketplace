@@ -71,6 +71,8 @@
 .toast.on{opacity:1;transform:translate(-50%,0)}
 /* десктоп: «Далее» — обычная кнопка справа, а не полоса во всю ширину */
 @media (min-width:768px){.bnav .btn{flex:0 0 auto}.bnav #next{margin-left:auto;min-width:240px}}
+/* на проверке: не отвеченный обязательный вопрос подсвечен */
+.sum dd.need{color:var(--danger)}
 /* проверочный режим ?qa=1: без анимаций (для скриншотов) */
 .qa .bstep.show,.qa .bdone{animation:none!important}
 .qa .bar i,.qa .pill,.qa .opt,.qa .opt .tick,.qa .opt .tick .i{transition:none!important}

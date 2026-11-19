@@ -428,6 +428,13 @@ html,body{overflow-x:clip}
 .partners{max-width:760px}
 @media (min-width:768px){.partners{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}}
 .partner>svg{flex:none;align-self:flex-start;height:48px;width:168px}
+/* точки слайдера: видимые 8px, а зона нажатия 24px */
+.fan-nav{gap:16px}
+.fan-nav button{position:relative}
+.fan-nav button::after{content:"";position:absolute;inset:-8px;border-radius:50%}
+/* закрытое мобильное меню не ловит фокус с клавиатуры и не читается диктором */
+.mobile-menu{visibility:hidden;transition:opacity .4s var(--ease),visibility 0s linear .4s}
+.menu-open .mobile-menu{visibility:visible;transition:opacity .4s var(--ease),visibility 0s}
 .qa .fan-nav button{transition:none!important}
 .partner .link-arrow{margin-top:12px;color:var(--accent)}
 .partner .link-arrow:hover .i{transform:translateX(2px)}

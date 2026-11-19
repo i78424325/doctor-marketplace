@@ -51,14 +51,16 @@
   var host = d.getElementById('bsteps'), bar = d.getElementById('bar'), lbl = d.getElementById('bprog-step'), ttl = d.getElementById('bprog-title');
   var pills = d.getElementById('pills'), back = d.getElementById('back'), next = d.getElementById('next'), toast = d.getElementById('toast');
 
-  function voiceField(id, val, multiline, short) {
+  // поле с микрофоном; имя для экранных дикторов — заголовок вопроса (у «Другое» — «вопрос — свой вариант»)
+  function voiceField(id, val, multiline, short, q, other) {
+    var name = other ? ' aria-label="' + esc(q.t + ' — свой вариант') + '"' : ' aria-labelledby="qt-' + q.id + '"';
     var f = multiline
-      ? '<textarea class="inp' + (short ? ' short' : '') + '" id="' + id + '" rows="' + (short ? 2 : 4) + '" placeholder="Ваш ответ">' + esc(val || '') + '</textarea>'
-      : '<input class="inp" id="' + id + '" type="text" placeholder="Ваш вариант" value="' + esc(val || '') + '">';
-    return '<div class="voice-wrap">' + f + '<button type="button" class="mic" data-mic="' + id + '" aria-label="Надиктовать голосом">' + MIC + '</button></div><p class="voice-status" id="' + id + '-st" aria-live="polite"></p>';
+      ? '<textarea class="inp' + (short ? ' short' : '') + '" id="' + id + '" rows="' + (short ? 2 : 4) + '" placeholder="Ваш ответ"' + name + '>' + esc(val || '') + '</textarea>'
+      : '<input class="inp" id="' + id + '" type="text" placeholder="Ваш вариант" value="' + esc(val || '') + '"' + name + '>';
+    return '<div class="voice-wrap">' + f + '<button type="button" class="mic" data-mic="' + id + '" aria-label="Надиктовать голосом" aria-describedby="qt-' + q.id + '">' + MIC + '</button></div><p class="voice-status" id="' + id + '-st" aria-live="polite"></p>';
   }
   function renderQ(q) {
-    var a = A[q.id] || {}, h = '<div class="q" id="q-' + q.id + '"><p class="q-title"><span class="q-num">' + NUM[q.id] + '.</span>' + esc(q.t) + (q.r ? '<span class="q-req">обязательно</span>' : '') + '</p>';
+    var a = A[q.id] || {}, h = '<div class="q" id="q-' + q.id + '"><p class="q-title" id="qt-' + q.id + '"><span class="q-num">' + NUM[q.id] + '.</span>' + esc(q.t) + (q.r ? '<span class="q-req">обязательно</span>' : '') + '</p>';
     if (q.h) h += '<p class="q-hint">' + esc(q.h) + '</p>';
     if (q.o) {
       var sel = q.k === 'many' ? (a.v || []) : [a.v];
@@ -67,10 +69,10 @@
       }).join('') + '</div>';
       if (q.o.some(function (o) { return OTHER.test(o); })) {
         var shown = sel.some(function (o) { return OTHER.test(o); });
-        h += '<div class="other" id="other-' + q.id + '"' + (shown ? '' : ' hidden') + '>' + voiceField('ot-' + q.id, a.other, false) + '</div>';
+        h += '<div class="other" id="other-' + q.id + '"' + (shown ? '' : ' hidden') + '>' + voiceField('ot-' + q.id, a.other, false, false, q, true) + '</div>';
       }
     } else {
-      h += voiceField('tx-' + q.id, a.v, true, q.k === 'text');
+      h += voiceField('tx-' + q.id, a.v, true, q.k === 'text', q, false);
     }
     return h + '<p class="q-err" id="err-' + q.id + '" aria-live="polite"></p></div>';
   }
@@ -83,7 +85,8 @@
   function renderReview() {
     return '<h2 tabindex="-1">Проверьте ответы</h2><div class="sum">' + STEPS.map(function (s, i) {
       return '<section class="sum-step"><header><h3>' + esc(s.t) + '</h3><button type="button" data-goto="' + i + '">Изменить</button></header><dl>' + s.qs.map(function (q) {
-        var v = fmtVal(q); return '<div><dt>' + NUM[q.id] + '. ' + esc(q.t) + '</dt><dd' + (v ? '' : ' class="empty"') + '>' + esc(v || 'Без ответа') + '</dd></div>';
+        var v = fmtVal(q), need = q.r && !v;
+        return '<div><dt>' + NUM[q.id] + '. ' + esc(q.t) + '</dt><dd' + (v ? '' : ' class="empty' + (need ? ' need' : '') + '"') + '>' + esc(v || (need ? 'Нужен ответ — это обязательный вопрос' : 'Без ответа')) + '</dd></div>';
       }).join('') + '</dl></section>';
     }).join('') + '</div><div class="bdone" id="bdone" hidden tabindex="-1"><span class="ok">' + CHECK + '</span><h3 class="heading-5">Бриф готов</h3><p>Это демо-версия сайта: в рабочей версии бриф сразу придёт команде в Телеграм и на почту. Пока можно скопировать ответы или скачать их файлом.</p><div class="row"><button type="button" class="btn btn-ghost btn-sm" id="copy">' + '<svg class="i" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/></svg>' + '<span>Скопировать ответы</span></button><button type="button" class="btn btn-ghost btn-sm" id="dl">' + '<svg class="i" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z"/></svg>' + '<span>Скачать файлом</span></button><button type="button" class="btn btn-ghost btn-sm" id="again"><span>Заполнить заново</span></button></div></div>';
   }
@@ -108,7 +111,7 @@
     back.hidden = step === 0;
     next.querySelector('span').textContent = isReview ? 'Отправить бриф' : (step === STEPS.length - 1 ? 'К проверке' : 'Далее');
     next.hidden = false; next.closest('.bnav').hidden = false;
-    if (window.DMVoice) Array.prototype.forEach.call(host.querySelectorAll('[data-mic]'), function (b) { var id = b.getAttribute('data-mic'); window.DMVoice.attach(b, d.getElementById(id), d.getElementById(id + '-st')); });
+    if (window.DMVoice) Array.prototype.forEach.call(host.querySelectorAll('[data-mic]'), function (b) { var id = b.getAttribute('data-mic'); window.DMVoice.attach(b, d.getElementById(id), d.getElementById(id + '-st'), function (val) { applyField(id, val); }); });
     if (focus) {
       // начало шага — сразу под липкой полосой прогресса (scrollIntoView у липкого блока не прокручивает)
       var bp = d.getElementById('bprog'), st = parseFloat(getComputedStyle(bp).top) || 0;
@@ -128,7 +131,16 @@
     if (first) { first.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); ok = false; }
     return ok;
   }
-  function go(i) { step = Math.max(0, Math.min(i, STEPS.length)); maxStep = Math.max(maxStep, step); render(true); }
+  // первый шаг, где не отвечен обязательный вопрос (-1 — всё отвечено)
+  function firstMissing() { for (var i = 0; i < STEPS.length; i++) { if (STEPS[i].qs.some(function (q) { return q.r && !has((A[q.id] || {}).v); })) return i; } return -1; }
+  function go(i) { if (window.DMVoice) window.DMVoice.stop(); step = Math.max(0, Math.min(i, STEPS.length)); maxStep = Math.max(maxStep, step); render(true); }
+  // ответ из поля → в A (поле на странице или уже убрано, если диктовка закончилась после перехода)
+  function applyField(fid, value) {
+    var m;
+    if ((m = /^tx-(.+)$/.exec(fid))) { (A[m[1]] || (A[m[1]] = {})).v = value; var card = d.getElementById('q-' + m[1]); if (card && card.classList.contains('invalid') && has(value)) { card.classList.remove('invalid'); d.getElementById('err-' + m[1]).textContent = ''; } }
+    else if ((m = /^ot-(.+)$/.exec(fid))) (A[m[1]] || (A[m[1]] = {})).other = value;
+    save();
+  }
 
   host.addEventListener('click', function (e) {
     var o = e.target.closest('.opt');
@@ -150,19 +162,25 @@
     if (e.target.closest('#dl')) { var blob = new Blob([asText()], { type: 'text/plain;charset=utf-8' }), url = URL.createObjectURL(blob), a2 = d.createElement('a'); a2.href = url; a2.download = 'Бриф — Доктор Маркетплейс.txt'; d.body.appendChild(a2); a2.click(); setTimeout(function () { URL.revokeObjectURL(url); a2.remove(); }, 500); say('Файл с ответами скачан'); return; }
     if (e.target.closest('#again')) { A = {}; step = 0; maxStep = 0; try { localStorage.removeItem(KEY); } catch (x) {} render(true); return; }
   });
-  host.addEventListener('input', function (e) {
-    var t = e.target, m;
-    if ((m = /^tx-(.+)$/.exec(t.id))) { (A[m[1]] || (A[m[1]] = {})).v = t.value; var card = d.getElementById('q-' + m[1]); if (card && card.classList.contains('invalid') && has(t.value)) { card.classList.remove('invalid'); d.getElementById('err-' + m[1]).textContent = ''; } }
-    else if ((m = /^ot-(.+)$/.exec(t.id))) (A[m[1]] || (A[m[1]] = {})).other = t.value;
-    save();
-  });
+  host.addEventListener('input', function (e) { applyField(e.target.id, e.target.value); });
   pills.addEventListener('click', function (e) { var g = e.target.closest('[data-goto]'); if (g && !g.disabled) go(+g.getAttribute('data-goto')); });
-  back.addEventListener('click', function () { if (window.DMVoice) window.DMVoice.stop(); go(step - 1); });
+  back.addEventListener('click', function () { go(step - 1); });
   next.addEventListener('click', function () {
+    if (next.classList.contains('loading')) return;
     if (window.DMVoice) window.DMVoice.stop();
     if (step < STEPS.length) { if (validStep()) go(step + 1); return; }
+    // перед отправкой — все обязательные вопросы (на проверку можно попасть вкладками, минуя «Далее»)
+    var miss = firstMissing();
+    if (miss > -1) { go(miss); validStep(); say('Ответьте на обязательный вопрос — и бриф можно отправить'); return; }
     next.classList.add('loading'); next.setAttribute('aria-busy', 'true');
-    setTimeout(function () { next.classList.remove('loading'); next.removeAttribute('aria-busy'); next.hidden = true; back.hidden = true; next.closest('.bnav').hidden = true; ttl.textContent = 'Бриф готов'; lbl.textContent = 'Готово'; var done = d.getElementById('bdone'); done.hidden = false; done.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); done.focus({ preventScroll: true }); }, 1100);
+    setTimeout(function () {
+      next.classList.remove('loading'); next.removeAttribute('aria-busy');
+      var done = d.getElementById('bdone');
+      if (!done || step < STEPS.length) return; // за эту секунду ушли с проверки — отправку не показываем
+      try { localStorage.removeItem(KEY); } catch (x) {}
+      next.hidden = true; back.hidden = true; next.closest('.bnav').hidden = true; ttl.textContent = 'Бриф готов'; lbl.textContent = 'Готово';
+      done.hidden = false; done.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); done.focus({ preventScroll: true });
+    }, 1100);
   });
   var restore = d.getElementById('restore');
   if (restore && Object.keys(A).some(function (k) { return has((A[k] || {}).v); })) {

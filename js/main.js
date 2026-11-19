@@ -16,11 +16,16 @@
   function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(function () { nav.classList.toggle('scrolled', window.scrollY > 12); ticking = false; }); } }
   window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
   var menuBtn = $('.menu-btn');
-  function setMenu(open) { root.classList.toggle('menu-open', open); menuBtn.setAttribute('aria-expanded', String(open)); menuBtn.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню'); d.body.style.overflow = open ? 'hidden' : ''; }
+  var mmenu = $('#mmenu');
+  function setMenu(open) { root.classList.toggle('menu-open', open); menuBtn.setAttribute('aria-expanded', String(open)); menuBtn.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню'); d.body.style.overflow = open ? 'hidden' : ''; if (mmenu) mmenu.inert = !open; }
   if (menuBtn) {
+    if (mmenu) mmenu.inert = true;
     menuBtn.addEventListener('click', function () { setMenu(!root.classList.contains('menu-open')); });
     $$('.mobile-menu a').forEach(function (a) { a.addEventListener('click', function () { setMenu(false); }); });
-    d.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
+    d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root.classList.contains('menu-open')) { setMenu(false); menuBtn.focus(); } });
+    // повернули планшет / расширили окно с открытым меню — закрываем, иначе страница остаётся без прокрутки
+    var wide = window.matchMedia('(min-width:1024px)'), onWide = function (e) { if (e.matches) setMenu(false); };
+    if (wide.addEventListener) wide.addEventListener('change', onWide); else if (wide.addListener) wide.addListener(onWide);
   }
   var links = $$('.nav-links a[href^="#"]');
   if ('IntersectionObserver' in window && links.length) {
@@ -163,8 +168,11 @@
     var validate = function (i) {
       var v = i.value.trim();
       if (i === nameI) { setErr(i, v.length < 2 ? 'Напишите, как к вам обращаться.' : ''); return v.length >= 2; }
-      var ok = /^@?[a-zA-Z0-9_]{5,}$/.test(v) || /t\.me\//.test(v) || v.replace(/\D/g, '').length >= 10;
-      setErr(i, ok ? '' : 'Укажите телефон (10+ цифр) или ник в Телеграме, например @username.');
+      // телефон (10–15 цифр), ник Телеграма (начинается с буквы, 5–32 символа), ссылка t.me или почта
+      var digits = v.replace(/\D/g, '').length;
+      var ok = /^@?[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(v) || /t\.me\/[a-zA-Z][a-zA-Z0-9_]{4,}/.test(v) ||
+        /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || (/^[\d\s()+\-]+$/.test(v) && digits >= 10 && digits <= 15);
+      setErr(i, ok ? '' : 'Укажите телефон, ник в Телеграме (например, @username) или почту.');
       return ok;
     };
     form.addEventListener('submit', function (e) {
